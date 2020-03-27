@@ -84,6 +84,42 @@ rs_addin_loadd <- function(context = NULL) {
   )
 }
 
+#' @title Readd target at cursor into global environment
+#' \lifecycle{stable}
+#' @description This function provides an RStudio addin that will
+#' read the target at the
+#' current cursor location from the cache.
+#' @details If you are using a non-standard `drake` cache,
+#'   you must supply it to the `"rstudio_drake_cache"` global option,
+#'   e.g. `options(rstudio_drake_cache = storr::storr_rds("my_cache"))`.
+#' @param context an RStudio document context.
+#'   Read from the active document if not supplied.
+#'   This is used for testing purposes.
+#' @return Nothing.
+#' @keywords internal
+#' @export
+rs_addin_readd <- function(context = NULL) {
+  assert_pkg("rstudioapi")
+  context <- context %|||% rstudioapi::getActiveDocumentContext()
+  target <- rs_get_symbol_at_cursor(context)
+  if (is.null(target)) {
+    return()
+  }
+  cache <- getOption("rstudio_drake_cache") %||% drake_cache()
+  cache <- decorate_storr(cache)
+  cli_msg(
+    "Reading target",
+    target,
+    "from cache",
+    cache$path
+  )
+  print(readd(
+    target = target,
+    cache = cache,
+    character_only = TRUE
+  ))
+}
+
 rs_get_symbol_at_cursor <- function(context) {
   if (identical(context$id, "#console")) {
     return(NULL)
